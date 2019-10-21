@@ -1,3 +1,5 @@
+//the starter code was copied from linuxhowtos.org/data/6/client_udp.c
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -32,6 +34,8 @@ int main(int argc, char *argv[])
          hp->h_length);
    server.sin_port = htons(atoi(argv[2]));
    length=sizeof(struct sockaddr_in);
+   
+// taking input
    printf("Enter string: ");
    bzero(buffer,128);
    fgets(buffer,128,stdin);
@@ -39,10 +43,14 @@ int main(int argc, char *argv[])
             strlen(buffer),0,(const struct sockaddr *)&server,length);
    if (n < 0) error("Sendto");
    bzero(buffer,128);
+   
+// receive data from server
    while(1){
    n = recvfrom(sock,buffer,128,0,(struct sockaddr *)&from, &length);
    if (n < 0) break;
    printf("From Server: %s\n",buffer);
+      
+// check for exit conditions
    if(strlen(buffer) < 2) break;
    if(buffer[0] == 'S') break;
    bzero(buffer,128);
