@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	bzero(buffer,128);
 
 	if(read(sockfd, buffer, 128) > 0){
-		printf("From server: %s\n",buffer);
+		printf("From servers: %s\n",buffer);
 	}
 	close(sockfd);
 	return 0;

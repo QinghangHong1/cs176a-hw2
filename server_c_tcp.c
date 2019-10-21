@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 void error(const char *msg)
 {
 	perror(msg);
@@ -47,6 +49,9 @@ int main(int argc, char *argv[])
 			error("ERROR on accept");
 		bzero(buffer,128);
 		n = read(newsockfd,buffer,128);
+		printf(buffer);
+		printf("%ld",strlen(buffer));
+		printf("\n");
 		if(n < 0){
 			error("Error in reading\n");
 			exit(1);
@@ -54,32 +59,30 @@ int main(int argc, char *argv[])
 		bool valid = true;
 		// case with non-number
 		for(int i = 0; i < strlen(buffer); i++){
+			if(buffer[i] == '\n')
+				break;
 			if(!isdigit(buffer[i])){
-				printf("index %d\n", i);
+		
 				write(newsockfd, "Sorry, cannot compute!",22);
 				valid = false;
 				break;
 			}
 		}
-		// normal case
+		// normal cas
 		if(valid){
 			int sum = 0;
 			for(int i = 0; i < strlen(buffer); i++){
+				if(buffer[i] == '\n'){
+					break;
+				}
+				printf("%d \n", buffer[i]);
 				sum += (int)(buffer[i]);
 			}
-			int temp = 0;
-			int i = 0;
-			// store digit of sum in reverse order
-			while(sum > 0){
-				buffer[i] = sum % 10;
-				sum = sum / 10;
-				i++;
-			}
-			char response[i];
-			for(int j = 0; j < i; j++){
-				response[j] = buffer[i - j - 1];
-			}
-			n = write(newsockfd,response, i);
+			//printf("sum %d",sum);
+			char response[128];
+			bzero(response, 128);
+			sprintf(response, "%d", sum);
+			n = write(newsockfd,response,strlen(response));
 			if (n < 0) error("ERROR writing to socket");
 			close(newsockfd);
 		}
