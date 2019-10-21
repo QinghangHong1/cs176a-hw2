@@ -1,33 +1,58 @@
-#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-int main(int argc, char* argv[]){
-	if(argc != 3){
-		fprintf(stderr, "Usage: %s IP_ADDRESS  PORT_NUMBER\n", argv[0]);
-		exit(1);
-	}
-	int port = atoi(argv[2]);
-	struct sockaddr_in server_address, return_address;
-	char server_ip[50];
-	memcpy(server_ip,argv[1],50); 
-	int socket_id = socket(AF_INET, SOCK_DGRAM, 0);
-	if(socket_id < 0){
-		perror("Error in creating socket\n");
-		exit(1);
-	}
-	server_address.sin_family = AF_INET;
-	server_address.sin_addr.s_addr = inet_addr(server_ip);
-	server_address.sin_port = htons(port);
-	char message[128];
-	printf("Enter string: ");
-	scanf("%s", message);
-	sendto(socket_id, message, strlen(message), 0, (struct sockaddr *) &server_address, sizeof(struct sockaddr_in));
-	unsigned int return_len;
-	while(recvfrom(socket_id, message, strlen(message), 0, (struct sockaddr*) &return_address, &return_len) > 0){
-	       printf(message);
-	}	      
-	close(socket_id);
+
+void error(const char *);
+int main(int argc, char *argv[])
+{
+   int sock, n;
+   unsigned int length;
+   struct sockaddr_in server, from;
+   struct hostent *hp;
+   char buffer[256];
+
+   if (argc != 3) { printf("Usage: server port\n");
+                    exit(1);
+   }
+   sock= socket(AF_INET, SOCK_DGRAM, 0);
+   if (sock < 0) error("socket");
+
+   server.sin_family = AF_INET;
+   hp = gethostbyname(argv[1]);
+   if (hp==0) error("Unknown host");
+
+   bcopy((char *)hp->h_addr,
+        (char *)&server.sin_addr,
+         hp->h_length);
+   server.sin_port = htons(atoi(argv[2]));
+   length=sizeof(struct sockaddr_in);
+   printf("Please enter the message: ");
+   bzero(buffer,128);
+   fgets(buffer,128,stdin);
+   n=sendto(sock,buffer,
+            strlen(buffer),0,(const struct sockaddr *)&server,length);
+   if (n < 0) error("Sendto");
+   bzero(buffer,128);
+   while(1){
+   n = recvfrom(sock,buffer,128,0,(struct sockaddr *)&from, &length);
+   if (n < 0) break;
+   printf("From Server: %s\n",buffer);
+   if(strlen(buffer) < 2) break;
+   if(buffer[0] == 'S') break;
+   bzero(buffer,128);
+   }
+   close(sock);
+   return 0;
+}
+
+void error(const char *msg)
+{
+    perror(msg);
+    exit(0);
 }
