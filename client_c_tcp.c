@@ -48,8 +48,9 @@ int main(int argc, char *argv[])
 		error("ERROR writing to socket");
 	bzero(buffer,128);
 
-	if(read(sockfd, buffer, 128) > 0){
-		printf("From servers: %s\n",buffer);
+	while(read(sockfd, buffer, 128) > 0){
+		printf("From server: %s\n",buffer);
+		bzero(buffer, 128);
 	}
 	close(sockfd);
 	return 0;

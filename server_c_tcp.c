@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 void error(const char *msg)
 {
 	perror(msg);
@@ -49,9 +50,6 @@ int main(int argc, char *argv[])
 			error("ERROR on accept");
 		bzero(buffer,128);
 		n = read(newsockfd,buffer,128);
-		printf(buffer);
-		printf("%ld",strlen(buffer));
-		printf("\n");
 		if(n < 0){
 			error("Error in reading\n");
 			exit(1);
@@ -62,30 +60,39 @@ int main(int argc, char *argv[])
 			if(buffer[i] == '\n')
 				break;
 			if(!isdigit(buffer[i])){
-		
-				write(newsockfd, "Sorry, cannot compute!",22);
 				valid = false;
 				break;
 			}
 		}
-		// normal cas
-		if(valid){
-			int sum = 0;
-			for(int i = 0; i < strlen(buffer); i++){
-				if(buffer[i] == '\n'){
+
+		if(!valid || strlen(buffer) == 1){
+			write(newsockfd, "Sorry, cannot compute!", 22);
+		}
+		// normal case
+		else{
+			while(1){
+				int sum = 0;
+				for(int i = 0; i < strlen(buffer); i++){
+					if(buffer[i] == '\n'){
+						break;
+					}
+					sum += (int)(buffer[i]);
+					sum -= 48;
+				}
+				char response[128];
+				bzero(response, 128);
+				sprintf(response, "%d", sum);
+				strcpy(buffer, response);
+				n = write(newsockfd,response,strlen(response));
+				if(strlen(response) == 1){
 					break;
 				}
-				printf("%d \n", buffer[i]);
-				sum += (int)(buffer[i]);
+				sleep(0.01);
+				if (n < 0) error("ERROR writing to socket");
+			
 			}
-			//printf("sum %d",sum);
-			char response[128];
-			bzero(response, 128);
-			sprintf(response, "%d", sum);
-			n = write(newsockfd,response,strlen(response));
-			if (n < 0) error("ERROR writing to socket");
-			close(newsockfd);
 		}
+		close(newsockfd);
 	}
 	close(sockfd);
 	return 0; 
