@@ -1,100 +1,83 @@
-#include <unistd.h> 
-#include <stdio.h> 
-#include <sys/socket.h> 
-#include <stdlib.h> 
-#include <netinet/in.h> 
+#include <sys/types.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <string.h>
-#include <arpa/inet.h>
-#include <ctype.h>
+#include <netdb.h>
+#include <stdio.h>
 #include <stdbool.h>
-
-int main(int argc, char* argv[]){
-	if(argc != 2){
-		fprintf(stderr, "Usage: %s PORT_NUMBER\n", argv[0]);
-		exit(1);
-	}
-	int PORT = atoi(argv[1]);
-
-	int socket_id = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);//server socketid, like file handler
-	if(socket_id == -1){
-		perror ( "ERROR in creating socket\n");
-		exit(EXIT_FAILURE);
-	}
-	struct sockaddr_in address;// server address
-	address.sin_family = AF_INET; //IPv4
-	address.sin_addr.s_addr = INADDR_ANY; //Accept from any address public
-	address.sin_port = htons( PORT );// 
-
-	if(bind(socket_id, (struct sockaddr *) &address, sizeof(address)) < 0){
-		perror("error in binding socket\n");
-		exit(1);
-	}
-	while(1){
-		struct sockaddr_in client_address;
-		char message[128];
-		char response[100];
-		unsigned int return_len;
-		if(recvfrom(socket_id, message, 128, 0, 
-					(struct sockaddr*) &client_address, &return_len) < 0){
-			perror("Error in receiving packets\n");
-			exit(1);          
-		}
-		bool valid = true;
-		for(int i = 0; i < strlen(message); i++){
-			// case with non-number chars
-			if(!isdigit(message[i])){
-				strcpy(response, "From server: Sorry, cannot compute!\n");
-				int response_length = strlen(response);
-				valid = false;
-				if(sendto(socket_id, "Sorry, cannot compute!\n", 22, 0, (const struct sockaddr*) &client_address, return_len) < 0){
-					perror("Error in sending the invalid message packet\n");
-					exit(1);
-				};
-				break;
-			}
-		}
-		// normal case
-		if(valid){
-			if(sendto(socket_id, response, return_len, 0, (struct sockaddr*) &client_address, sizeof(struct sockaddr_in)) < 0){
-				perror("Error in sending the packets\n");
-				exit(1);
-			}
-			int sum = 0;
-			int length = strlen(response);
-			while(length > 1){
-				// sum up the digit
-				for(int i = 0; i < length; i++){
-					sum += response[i];
-				}
-				int i = 0;
-				// store the digit in reverse order in response
-				while(sum > 0){
-					response[i] = sum % 10;
-					sum = sum / 10;
-					i++;
-				}
-				char true_response[i];
-				// reverse the order of the digits and store in true_response
-				for(int j = 0; j < i; j++){
-					true_response[j] = response[i - j - 1];
-				}
-				// send the true response
-				if(sendto(socket_id, true_response, i, 0, (struct sockaddr*) &client_address, sizeof(struct sockaddr_in)) < 0){
-					perror("Error in sending the packets\n");
-					exit(1);
-				}
-				// send a newline
-				/*char new_line[] = "\n";
-				  if(sendto(socket_id, new_line, 1, 0, (struct sockaddr*) &client_address, sizeof(struct sockaddr_in)) < 0){
-				  perror("Error in sending the packets\n");
-				  exit(1);
-				  }*/
-				// update the length of response
-				length = i;
-			}	
-		}
-
-		close(socket_id);
-
-	}
+#include <ctype.h>
+#include <stdlib.h>
+void error(const char *msg)
+{
+    perror(msg);
+    exit(0);
 }
+
+int main(int argc, char *argv[])
+{
+   int sock, length, n;
+   socklen_t fromlen;
+   struct sockaddr_in server;
+   struct sockaddr_in from;
+   char buf[1024];
+
+   if (argc < 2) {
+      fprintf(stderr, "ERROR, no port provided\n");
+      exit(0);
+   }
+
+   sock=socket(AF_INET, SOCK_DGRAM, 0);
+   if (sock < 0) error("Opening socket");
+   length = sizeof(server);
+   bzero(&server,length);
+   server.sin_family=AF_INET;
+   server.sin_addr.s_addr=INADDR_ANY;
+   server.sin_port=htons(atoi(argv[1]));
+   if (bind(sock,(struct sockaddr *)&server,length)<0)
+       error("binding");
+   fromlen = sizeof(struct sockaddr_in);
+   int sum = 100;
+   while(1){
+       n = recvfrom(sock,buf,1024,0,(struct sockaddr *)&from,&fromlen);
+       if (n < 0) error("recvfrom");
+       write(1,"Received a datagram: ",21);
+       write(1,buf,n);
+       while(1){
+       sum = 0;
+       bool valid = true;
+       for(int i = 0; i < strlen(buf); i++){
+               if(buf[i] == '\n') break;
+               if(buf[i] == '\n' && i == 0){
+                       valid = false;
+                       break;
+               }
+               if(!isdigit(buf[i])){
+                       valid = false;
+                       break;
+               }
+               if(buf[i] == '\n') break;
+               sum += (int)(buf[i]);
+               sum -= 48;
+       }
+       if(!valid){
+                sendto(sock,"Sorry, cannot compute!",22,0,(struct sockaddr *)&from,fromlen);
+                break;
+       }
+       printf("%d\n", sum);
+       char response[128];
+       bzero(response, 128);
+       sprintf(response, "%d", sum);
+       n = sendto(sock,response,strlen(response),
+                  0,(struct sockaddr *)&from,fromlen);
+       if (n < 0) error("sendto");
+       if (sum < 10) break;
+       bzero(buf,128);
+       sprintf(buf, "%d", sum);
+       }
+   }
+   close(sock);
+   return 0;
+ }
+
