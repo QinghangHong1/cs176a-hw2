@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
          hp->h_length);
    server.sin_port = htons(atoi(argv[2]));
    length=sizeof(struct sockaddr_in);
-   printf("Please enter the message: ");
+   printf("Enter string: ");
    bzero(buffer,128);
    fgets(buffer,128,stdin);
    n=sendto(sock,buffer,
