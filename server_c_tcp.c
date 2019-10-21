@@ -1,5 +1,7 @@
-/* A simple server in the internet domain using TCP
-   The port number is passed as an argument */
+/**
+ * The basic structure was copied from http://www.linuxhowtos.org/data/6/server.c
+ * Lines copied: Line 5 - Line 46
+ */ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

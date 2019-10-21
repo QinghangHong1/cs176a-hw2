@@ -1,3 +1,9 @@
+/**
+ *
+ * The basic structure was copied from http://www.linuxhowtos.org/data/6/client.c
+ * Lines copied: line 7 - line 48
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
