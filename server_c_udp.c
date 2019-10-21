@@ -1,3 +1,5 @@
+//the starter code was copied from linuxhowtos.org/data/6/server_udp.c
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -39,12 +41,16 @@ int main(int argc, char *argv[])
        error("binding");
    fromlen = sizeof(struct sockaddr_in);
    int sum = 100;
+    
+// listing on destinated port
    while(1){
        n = recvfrom(sock,buf,1024,0,(struct sockaddr *)&from,&fromlen);
        if (n < 0) error("recvfrom");
        while(1){
        sum = 0;
        bool valid = true;
+           
+// normal case
        for(int i = 0; i < strlen(buf); i++){
                if(buf[i] == '\n') break;
                if(buf[i] == '\n' && i == 0){
@@ -59,6 +65,8 @@ int main(int argc, char *argv[])
                sum += (int)(buf[i]);
                sum -= 48;
        }
+           
+ // invalid case
        if(!valid){
                 sendto(sock,"Sorry, cannot compute!",22,0,(struct sockaddr *)&from,fromlen);
                 break;
@@ -68,8 +76,6 @@ int main(int argc, char *argv[])
        sprintf(response, "%d", sum);
        n = sendto(sock,response,strlen(response),
                   0,(struct sockaddr *)&from,fromlen);
-       if (n < 0) error("sendto");
-       if (sum < 10) break;
        bzero(buf,128);
        sprintf(buf, "%d", sum);
        }
